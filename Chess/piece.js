@@ -103,6 +103,7 @@ class Piece {
             gamestate.moveLog.push(move);
             console.log(gamestate.moveLog)
             setTimeout(AImove, 10)
+            this.movecount += 1;
         } else {
             gamestate.carryingPiece = false;
             gamestate.board.draw();
@@ -141,39 +142,27 @@ class Pawn extends Piece {
     };
 
     validateMove(x, y, inputBoard = gamestate.board) {
-        if ((x > 7) || (x < 0) || (y > 7) || (y < 0)) {
-            return;
+        let moves = [];
+
+        let pieceAt = inputBoard.getPieceAt(this.x - 1, this.y + this.direction());
+        if (pieceAt && pieceAt.isWhite != this.isWhite) {
+            moves.push(new Move(this.x - 1, this.y + this.direction(), this));
+        };
+        
+        pieceAt = inputBoard.getPieceAt(this.x + 1, this.y + this.direction());
+        if (pieceAt && pieceAt.isWhite != this.isWhite) {
+            moves.push(new Move(this.x + 1, this.y + this.direction(), this));
         };
 
-        let pieceAtLoc = inputBoard.getPieceAt(x, y);
-
-        let delta = {
-            x: x - this.x,
-            y: y - this.y
-        };
-
-        let possible = false;
-        for (let vector of this.vectors) {
-            if (vector[0] == delta.x && vector[1] == delta.y) {
-                possible = true;
-                break;
+        if (!inputBoard.getPieceAt(this.x, this.y + this.direction())) {
+            moves.push(new Move(this.x, this.y + this.direction(), this));
+            if (!inputBoard.getPieceAt(this.x, this.y + this.direction(2)) && this.movecount == 0) {
+                moves.push(new Move(this.x, this.y + this.direction(2), this));
             };
         };
 
-        if (!possible) {
-            return false;
-        };
-
-        if (delta.x == 0) {
-            if (pieceAtLoc || (delta.y == 2 && inputBoard.getPieceAt(x, y - 1))) {
-                return false;
-            } else {
-                return true;
-            }
-        } else {
-            if (!pieceAtLoc || (pieceAtLoc.isWhite == this.isWhite)) {
-                return false;
-            } else {
+        for (let move of moves) {
+            if (move.x == x && move.y == y) {
                 return true;
             }
         }
