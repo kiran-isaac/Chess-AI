@@ -24,23 +24,6 @@ let images =  {
     }
 };
 
-class Move {
-    constructor(x, y, piece) {
-        this.x = x;
-        this.y = y;
-        this.piece = piece
-    };
-
-    draw() {
-        ctx.strokeStyle = '#ff0000';
-        ctx.linewidth = 20;
-        ctx.beginPath();
-        ctx.moveTo(this.piece.x*squaresize + squaresize/2, (7-this.piece.y)*squaresize + squaresize/2);
-        ctx.lineTo(this.x*squaresize + squaresize/2, (7-this.y)*squaresize + squaresize/2);
-        ctx.stroke();
-    }
-};
-
 let pieceValues = {
     pawn : 1,
     knight : 3,
@@ -50,512 +33,331 @@ let pieceValues = {
     king : 200
 };
 
-class Piece {
-    constructor(x, y, id, isWhite, img, value) {
+class Move {
+    constructor(x, y, piece) {
         this.x = x;
         this.y = y;
-        this.id = id;
-        this.isWhite = isWhite;
-        this.img = img;
-        this.value = value;
-        this.availableMoves = [];
-        this.movecount = 0;
-    };
-
-    getAllMoves(inputBoard = gamestate.board) {
-        var out = [];
-        for (let vector of this.vectors) {
-            if (this.validateMove(this.x + vector[0], this.y + vector[1], inputBoard)) {
-                out.push(new Move(this.x + vector[0], this.y + vector[1], this));
-            };
-        };
-        return out;
+        this.X = piece.x;
+        this.Y = piece.y;
+        this.piece = piece;
     };
 
     draw() {
-        ctx.drawImage(this.img, this.x * squaresize, (7-this.y) * squaresize, squaresize, squaresize);
-    };
+        ctx.strokeStyle = this.piece.isWhite ? '#00f' : '#f00';
+        ctx.lineWidth = 1;
 
-    drawAt(x, y) {
-        ctx.drawImage(this.img, x, y, squaresize, squaresize);
-    };
+        ctx.beginPath();
+        ctx.moveTo(this.piece.x * game.board.squaresize + game.board.squaresize/2, (7-this.piece.y) * game.board.squaresize + game.board.squaresize/2);
+        ctx.lineTo(this.x * game.board.squaresize + game.board.squaresize/2, (7-this.y) * game.board.squaresize + game.board.squaresize/2);
+        ctx.stroke();
 
-    capture(b) {
-        if (this.isWhite) {
-            b.whitepieces = b.whitepieces.filter((x) => x != this);
-        } else {
-            b.blackpieces = b.blackpieces.filter((x) => x != this);
-        };
+        ctx.beginPath();
+        ctx.arc(this.x * game.board.squaresize + game.board.squaresize/2, (7-this.y) * game.board.squaresize + game.board.squaresize/2, 15, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+};
+
+class Piece {
+    constructor(x, y, board, id, isWhite, img, value) {
+        this.x = x;
+        this.y = y;
+        this.board = board;
+        this.id = id;
+        this.isWhite = isWhite;
+        this.player = isWhite ? this.board.white : this.board.black;
+        this.img = img;
+        this.value = value;
+
+        this.firstMove = true;
+        this.moves = [];
+        this.attacking = [];
+
+        this.board.map[7-this.y][this.x] = this;
     };
 
     putDown(x, y) {
         if (x == this.x && y == this.y) {
-            gamestate.carryingPiece = false;
-            gamestate.board.draw();
-        };
-        if (this.validateMove(x, y)) {
-            var move = new Move(x, y, this);
-            gamestate.carryingPiece = false;
-            gamestate.isWhitesTurn = !this.isWhite;
-            gamestate.board.apply(move);
-            gamestate.board.draw();
-            messager.innerHTML = "Calculating...";
-            gamestate.moveLog.push(move);
-            console.log(gamestate.moveLog)
-            setTimeout(AImove, 10)
-        } else {
-            gamestate.carryingPiece = false;
-            gamestate.board.draw();
-        };
-    };
-};
-
-class Pawn extends Piece {
-    constructor(x, y, isWhite) {
-        super(x, y, Pawn, isWhite, (isWhite ? images.w : images.b).pawn, 1)
-        this.movecount = 0;
-
-        this.value = pieceValues.pawn;
-        
-        this.vectors = [
-            [-1, this.direction()],
-            [1, this.direction()],
-            [0, this.direction()],
-            [0, this.direction(2)],
-        ];
-    };
-
-    getMobility(inputBoard = gamestate.board) {
-        let mobility = 0;
-        if (inputBoard.getPieceAt(this.x, this.y+this.direction())) mobility += 1;
-        if (inputBoard.getPieceAt(this.x, this.y+this.direction(2))) mobility += 1;
-        return mobility;
-    };
-
-    direction(x = 1) {
-        if (this.isWhite) {
-            return 1 * x;
-        } else {
-            return -1 * x;
-        };
-    };
-
-    validateMove(x, y, inputBoard = gamestate.board) {
-        if ((x > 7) || (x < 0) || (y > 7) || (y < 0)) {
+            game.holding = false;
+            game.board.draw();
             return;
         };
-
-        let pieceAtLoc = inputBoard.getPieceAt(x, y);
-
-        let delta = {
-            x: x - this.x,
-            y: y - this.y
+        this.recalculateMoves();
+        for (let move of this.moves) {
+            if (move.x == x && move.y == y) {
+                this.firstMove = false;
+                game.board.apply(move);
+                game.holding = false;
+                game.board.draw();
+                game.board.recalculateMoves();
+                game.updateState();
+                game.isWhitesTurn = !game.isWhitesTurn;
+            };
         };
+    };
 
-        let possible = false;
-        for (let vector of this.vectors) {
-            if (vector[0] == delta.x && vector[1] == delta.y) {
-                possible = true;
-                break;
+    capture() {
+        this.player.pieces = this.player.pieces.filter(x => x != this);
+        this.board.pieces = this.board.pieces.filter(x => x != this);
+    };
+
+    forwards(steps = 1) {
+        return this.isWhite ? steps : -steps;
+    };
+
+    draw() {
+        ctx.drawImage(this.img, this.x * game.board.squaresize, (7-this.y) * game.board.squaresize, game.board.squaresize, game.board.squaresize);
+    };
+
+    drawAt(x, y) {
+        ctx.drawImage(this.img, x - game.board.squaresize / 2, y - game.board.squaresize / 2, game.board.squaresize, game.board.squaresize);
+    };
+
+    recalculateMoves() {
+        this.moves = [];
+        this.attacking = [];
+
+        for (let direction of this.attackDirections) {
+            let x, y, pieceAt;
+            for (let i = 1; i < 8; i++) {
+                x = direction[0]*i + this.x;
+                y = direction[1]*i + this.y;
+                if (x >= 0 && x < 8 && y >= 0 && y < 8) {
+                    pieceAt = this.board.getPieceAt(x, y)
+                    if (!pieceAt) {
+                        this.moves.push(new Move(x, y, this));
+                        this.attacking.push(new Move(x, y, this));
+                    } else if (pieceAt.isWhite != this.isWhite) {
+                        this.moves.push(new Move(x, y, this));
+                        this.attacking.push(new Move(x, y, this));
+                        if (pieceAt.id != King) {
+                            break;
+                        };
+                    } else {
+                        break;
+                    };
+                } else {
+                    break;
+                };
             };
         };
 
-        if (!possible) {
-            return false;
+        if (this.player.king.isCheck) {
+            for (let move of this.moves) {
+                let testBoard = this.board.newBoardFromMove(move);
+                let testPlayer = this.isWhite ? testBoard.white : testBoard.black;
+                let threataningPiece = testBoard.getPieceAt(this.player.king.isCheck.x, this.player.king.isCheck.y);
+                threataningPiece.recalculateMoves();
+                testPlayer.king.recalculateMoves();
+                if (testPlayer.king.isCheck) {
+                    this.moves = this.moves.filter(x => x != move);
+                };
+            };
         };
 
-        if (delta.x == 0) {
-            if (pieceAtLoc || (delta.y == 2 && inputBoard.getPieceAt(x, y - 1))) {
-                return false;
-            } else {
-                return true;
-            }
-        } else {
-            if (!pieceAtLoc || (pieceAtLoc.isWhite == this.isWhite)) {
-                return false;
-            } else {
-                return true;
-            }
-        }
+        this.player.moves = this.player.moves.concat(this.moves);
+        this.player.attacking = this.player.attacking.concat(this.attacking);
+
+        this.player.moves = this.player.moves.concat(this.moves);
+        this.player.attacking = this.player.attacking.concat(this.attacking);
     };
 };
 
 class Rook extends Piece {
-    constructor(x, y, isWhite) {
-        super(x, y, Rook, isWhite, (isWhite ? images.w : images.b).rook, 5);
-        this.vectors = []
-
-        this.value = pieceValues.rook;
-
-        this.movecount = 0
-        
-        for (var i = 1; i < 8; i++) {
-            this.vectors.push([0, i]);
-            this.vectors.push([0, -i]);
-            this.vectors.push([i, 0]);
-            this.vectors.push([-i, 0]);
-        };
-    };
-
-    validateMove(x, y, inputBoard = gamestate.board) {
-        if ((x > 7) || (x < 0) || (y > 7) || (y < 0)) {
-            return;
-        };
-
-        var pieceAtLoc = inputBoard.getPieceAt(x, y);
-
-        let delta = {
-            x: Math.abs(x - this.x),
-            y: Math.abs(y - this.y)
-        };
-
-        if (!((delta.x == 0 && delta.y != 0) || (delta.x != 0 && delta.y == 0))) {
-            return
-        }
-
-        var direction = this.getDirection(x, y);
-
-        var path = this.getPath(x, y, direction);
-
-        for (var space of path) {
-            if (inputBoard.getPieceAt(space[0], space[1])) {
-                return;
-            };
-        };
-        if ((this.x == x && this.y != y) || (this.x != x && this.y == y)) {
-            if (pieceAtLoc) {
-                if ((this.isWhite && !pieceAtLoc.isWhite) || (!this.isWhite && pieceAtLoc.isWhite)) {
-                    return true;
-                }
-            } else {
-                return true;
-            };
-        };
-        return false;
-    };
-
-    getDirection(x, y) {
-        var deltax = 0;
-        var deltay = 0;
-
-        if (x > this.x) {
-            deltax = 1
-        } else if (x < this.x) {
-            deltax = -1
-        };
-
-        if (y > this.y) {
-            deltay = 1
-        } else if (y < this.y) {
-            deltay = -1
-        };
-
-        return [deltax, deltay];
-    }
-
-    getPath(x, y, direction) {
-        var path = []
-
-        var X = this.x;
-        var Y = this.y;
-
-        while (X != x || Y != y) {
-            X += direction[0];
-            Y += direction[1];
-
-            path.push([X, Y])
-        };
-
-        path.pop()
-
-        return path
-    };
-};
-
-class Knight extends Piece {
-    constructor(x, y, isWhite) {
-        super(x, y, Knight, isWhite, (isWhite ? images.w : images.b).knight, 3);
-
-        this.movecount = 0
-
-        this.value = pieceValues.knight;
-
-        this.vectors = [
-            [1, 2],
-            [2, 1],
-            [-1, 2],
-            [-2, 1],
-            [1, -2],
-            [2, -1],
-            [-1, -2],
-            [-2, -1],
-        ]
-    };
-
-    validateMove(x, y, inputBoard = gamestate.board) {
-        if ((x > 7) || (x < 0) || (y > 7) || (y < 0)) {
-            return;
-        };
-
-        var pieceAtLoc = inputBoard.getPieceAt(x, y);
-
-        var delta = [Math.abs(x - this.x), Math.abs(y - this.y)];
+    constructor(x, y, board, isWhite) {
+        super(x, y, board, Rook, isWhite, (isWhite ? images.w : images.b).rook, pieceValues.rook)
     
-        if (!(delta[0] == 1 && delta[1] == 2 || delta[0] == 2 && delta[1] == 1)) {
-            return;
-        };
-
-        if (pieceAtLoc) {
-            if ((this.isWhite && !pieceAtLoc.isWhite) || (!this.isWhite && pieceAtLoc.isWhite)) {
-    
-                return true;
-            }
-        } else {
-            return true;
-        };
-    };
-};
-
-class Bishop extends Piece {
-    constructor(x, y, isWhite) {
-        super(x, y, Bishop, isWhite, (isWhite ? images.w : images.b).bishop, 3);
-
-        this.movecount = 0
-
-        this.value = pieceValues.bishop;
-
-        this.vectors = []
-        
-        for (var i = 1; i < 8; i++) {
-            this.vectors.push([i, i]);
-            this.vectors.push([i, -i]);
-            this.vectors.push([-i, i]);
-            this.vectors.push([-i, -i]);
-        };
-    };
-
-    validateMove(x, y, inputBoard = gamestate.board) {
-        if ((x > 7) || (x < 0) || (y > 7) || (y < 0)) {
-            return;
-        };
-
-        var pieceAtLoc = inputBoard.getPieceAt(x, y);
-
-        var delta = [Math.abs(x - this.x), Math.abs(y - this.y)]
-
-        if (delta[0] != delta[1]) {
-            return
-        }
-
-        var direction = this.getDirection(x, y);
-
-        var path = this.getPath(x, y, direction);
-
-        for (var space of path) {
-            if (inputBoard.getPieceAt(space[0], space[1])) {
-                return;
-            }
-        };
-
-        if (pieceAtLoc) {
-            if ((this.isWhite && !pieceAtLoc.isWhite) || (!this.isWhite && pieceAtLoc.isWhite)) {
-                return true;
-            }
-        } else {
-            return true;
-        };
-
-        return false;
-    };
-
-    getDirection(x, y) {
-        var deltax = 0;
-        var deltay = 0;
-
-        if (x > this.x) {
-            deltax = 1
-        } else if (x < this.x) {
-            deltax = -1
-        };
-
-        if (y > this.y) {
-            deltay = 1
-        } else if (y < this.y) {
-            deltay = -1
-        };
-
-        return [deltax, deltay];
+        this.attackDirections = [
+            [1, 0],
+            [0, 1],
+            [-1, 0],
+            [0, -1]
+        ];
     }
-
-    getPath(x, y, direction) {
-        var path = []
-
-        var X = this.x;
-        var Y = this.y;
-
-        while (X != x || Y != y) {
-            X += direction[0];
-            Y += direction[1];
-
-            path.push([X, Y])
-        };
-
-        path.pop()
-        return path
-    };
 };
 
 class Queen extends Piece {
-    constructor(x, y, isWhite) {
-        super(x, y, Queen, isWhite, (isWhite ? images.w : images.b).queen, 9);
-
-        this.movecount = 0;
-
-        this.value = pieceValues.queen;
-
-        this.vectors = [];
-
-        for (var i = 1; i < 8; i++) {
-            this.vectors.push([i, i]);
-            this.vectors.push([i, -i]);
-            this.vectors.push([-i, i]);
-            this.vectors.push([-i, -i]);
-
-            this.vectors.push([0, i]);
-            this.vectors.push([0, -i]);
-            this.vectors.push([i, 0]);
-            this.vectors.push([-i, 0]);
-        };
-    };
-
-    validateMove(x, y, inputBoard = gamestate.board) {
-        if ((x > 7) || (x < 0) || (y > 7) || (y < 0)) {
-            return;
-        };
-
-        var pieceAtLoc = inputBoard.getPieceAt(x, y);
-
-        var delta = [Math.abs(x - this.x), Math.abs(y - this.y)]
-
-        if (!((delta[0] == delta[1] || ((delta[0] == 0 && delta[1] != 0) || (delta[0] != 0 && delta[1] == 0))))) {
-            return
-        }
-
-        var direction = this.getDirection(x, y);
-
-        var path = this.getPath(x, y, direction);
-
-        for (var space of path) {
-            if (inputBoard.getPieceAt(space[0], space[1])) {
-                return;
-            }
-        };
-
-        if (pieceAtLoc) {
-            if ((this.isWhite && !pieceAtLoc.isWhite) || (!this.isWhite && pieceAtLoc.isWhite)) {
-                return true;
-            }
-        } else {
-            return true;
-        };
-    };
-
-    getDirection(x, y) {
-        var deltax = 0;
-        var deltay = 0;
-
-        if (x > this.x) {
-            deltax = 1
-        } else if (x < this.x) {
-            deltax = -1
-        };
-
-        if (y > this.y) {
-            deltay = 1
-        } else if (y < this.y) {
-            deltay = -1
-        };
-
-        return [deltax, deltay];
+    constructor(x, y, board, isWhite) {
+        super(x, y, board, Queen, isWhite, (isWhite ? images.w : images.b).queen, pieceValues.queen)
+    
+        this.attackDirections = [
+            [1, 0],
+            [0, 1],
+            [-1, 0],
+            [0, -1],
+            [1, 1],
+            [-1, 1],
+            [1, -1],
+            [-1, -1]
+        ];
     }
+};
 
-    getPath(x, y, direction) {
-        var path = []
+class Bishop extends Piece {
+    constructor(x, y, board, isWhite) {
+        super(x, y, board, Bishop, isWhite, (isWhite ? images.w : images.b).bishop, pieceValues.bishop)
+    
+        this.attackDirections = [
+            [1, 1],
+            [-1, 1],
+            [1, -1],
+            [-1, -1]
+        ];
+    }
+};
 
-        var X = this.x;
-        var Y = this.y;
+class Knight extends Piece {
+    constructor(x, y, board, isWhite) {
+        super(x, y, board, Knight, isWhite, (isWhite ? images.w : images.b).knight, pieceValues.knight);
 
-        while (X != x || Y != y) {
-            X += direction[0];
-            Y += direction[1];
+        this.attackVectors = [
+            [2, 1],
+            [1, 2],
+            [-2, 1],
+            [-1, 2],
+            [2, -1],
+            [1, -2],
+            [-2, -1],
+            [-1, -2],
+        ];
+    };
 
-            path.push([X, Y])
+    recalculateMoves() {
+        this.moves = [];
+        this.attacking = [];
+
+        let x, y, pieceAt;
+        for (let vector of this.attackVectors) {
+            x = this.x + vector[0];
+            y = this.y + vector[1];
+            pieceAt = this.board.getPieceAt(x, y);
+
+            if (x >= 0 && y >= 0 && x < 8 && y < 8 && (!pieceAt || pieceAt.isWhite != this.isWhite)) {
+                this.moves.push(new Move(x, y, this));
+                this.attacking.push(new Move(x, y, this));
+            };
         };
 
-        path.pop()
-        return path
+        if (this.player.king.isCheck) {
+            for (let move of this.moves) {
+                let testBoard = game.board.newBoardFromMove(move);
+                let testPlayer = this.isWhite ? testBoard.white : testBoard.black;
+                let threataningPiece = testBoard.getPieceAt(this.player.king.isCheck.x, this.player.king.isCheck.y);
+                threataningPiece.recalculateMoves();
+                testPlayer.king.recalculateMoves();
+                if (testPlayer.king.isCheck) {
+                    this.moves = this.moves.filter(x => x != move);
+                };
+            };
+        };
+
+        this.player.moves = this.player.moves.concat(this.moves);
+        this.player.attacking = this.player.attacking.concat(this.attacking);
+    };
+};
+
+class Pawn extends Piece {
+    constructor(x, y, board, isWhite) {
+        super(x, y, board, Pawn, isWhite, (isWhite ? images.w : images.b).pawn, pieceValues.pawn);
+    };
+
+    recalculateMoves() {
+        this.moves = [];
+        this.attacking = [];
+
+        let pieceAt = this.board.getPieceAt(this.x - 1, this.y + this.forwards());
+        if (pieceAt && pieceAt.isWhite != this.isWhite) {
+            this.moves.push(new Move(this.x - 1, this.y + this.forwards(), this));
+        };
+        
+        pieceAt = this.board.getPieceAt(this.x + 1, this.y + this.forwards());
+        if (pieceAt && pieceAt.isWhite != this.isWhite) {
+            this.moves.push(new Move(this.x + 1, this.y + this.forwards(), this));
+        };
+
+        if (!this.board.getPieceAt(this.x, this.y + this.forwards())) {
+            this.moves.push(new Move(this.x, this.y + this.forwards(), this));
+            this.attacking.push(new Move(this.x, this.y + this.forwards(), this));
+            if (!this.board.getPieceAt(this.x, this.y + this.forwards(2)) && this.firstMove) {
+                this.moves.push(new Move(this.x, this.y + this.forwards(2), this));
+                this.attacking.push(new Move(this.x, this.y + this.forwards(2), this));
+            };
+        };
+
+        if (this.player.king.isCheck) {
+            for (let move of this.moves) {
+                let testBoard = game.board.newBoardFromMove(move);
+                let testPlayer = this.isWhite ? testBoard.white : testBoard.black;
+                let threataningPiece = testBoard.getPieceAt(this.player.king.isCheck.x, this.player.king.isCheck.y);
+                threataningPiece.recalculateMoves();
+                testPlayer.king.recalculateMoves();
+                if (testPlayer.king.isCheck) {
+                    this.moves = this.moves.filter(x => x != move);
+                };
+            };
+        };
+
+        this.player.moves = this.player.moves.concat(this.moves);
+        this.player.attacking = this.player.attacking.concat(this.attacking);
     };
 };
 
 class King extends Piece {
-    constructor(x, y, isWhite) {
-        super(x, y, King, isWhite, (isWhite ? images.w : images.b).king, 0);
+    constructor(x, y, board, isWhite) {
+        super(x, y, board, King, isWhite, (isWhite ? images.w : images.b).king, pieceValues.king);
 
-        this.movecount = 0;
+        this.player.king = this;
 
-        this.value = pieceValues.king;
+        this.isCheck = false;
 
-        this.vectors = [
-            [-1, 1],
-            [0, 1],
-            [1, 1],
-            [-1, 0],
+        this.attackVectors = [
             [1, 0],
-            [-1, -1],
+            [0, 1],
+            [-1, 0],
             [0, -1],
-            [1, -1]
+            [1, 1],
+            [-1, 1],
+            [1, -1],
+            [-1, -1]
         ];
-
-        if (isWhite) {
-            if (!wKing) {
-                wKing = this;
-            };
-        } else {
-            if (!bKing) {
-                bKing = this;
-            };
-        };
     };
 
-    validateMove(x, y, inputBoard = gamestate.board) {
-        if ((x > 7) || (x < 0) || (y > 7) || (y < 0)) {
-            return;
+    recalculateMoves() {
+        this.moves = [];
+        this.attacking = [];
+
+        let x, y, pieceAt;
+
+        let enemyAttackList = this.isWhite ? this.board.black.attacking : this.board.white.attacking;
+
+        this.isCheck = false;
+        for (let attack of enemyAttackList) {
+            if (this.x == attack.x && this.y == attack.y) {
+                this.isCheck = attack.piece;
+            };
         };
 
-        var pieceAtLoc = inputBoard.getPieceAt(x, y);
+        for (let vector of this.attackVectors) {
+            x = this.x + vector[0];
+            y = this.y + vector[1];
+            pieceAt = this.board.getPieceAt(x, y);
 
-        var delta = [Math.abs(x - this.x), Math.abs(y - this.y)]
+            if (x >= 0 && y >= 0 && x < 8 && y < 8 && (!pieceAt || pieceAt.isWhite != this.isWhite)) {
+                let attacked = false;
 
-        if (delta[0] > 1 || delta[1] > 1) {
-            return;
+                for (let attack of enemyAttackList) {
+                    if (attack.x == x && attack.y == y) {
+                        attacked = true;
+                    };
+                };
+
+                if (!attacked) {
+                    this.moves.push(new Move(x, y, this));
+                    this.attacking.push(new Move(x, y, this));
+                }
+            };
         };
 
-        //let enemyMoves = inputBoard.getMoves(!this.isWhite);
-        //for (let move of enemyMoves) {
-        //    if (move.x == x && move.y == y) {
-        //        return false;
-        //    };
-        //};
-
-        if (pieceAtLoc) {
-            if ((this.isWhite && !pieceAtLoc.isWhite) || (!this.isWhite && pieceAtLoc.isWhite)) {
-    
-                return true;
-            }
-        } else {
-            return true;
-        };
-
-        return false;
-    }
+        this.player.moves = this.player.moves.concat(this.moves);
+        this.player.attacking = this.player.attacking.concat(this.attacking);
+    };
 };

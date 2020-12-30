@@ -1,178 +1,241 @@
-let canvas = document.getElementById("canvas");
-let ctx = canvas.getContext("2d");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-const squaresize = canvas.width / 8;
+var game = {
+    showMoves : true,
+    players : 2,
+    isWhitesTurn : false,
+    holding : false,
+    updateState : function() {
+        let wasJustMovedAgainst = this.isWhitesTurn ? this.board.black : this.board.white;
+        if (wasJustMovedAgainst.king.isCheck) {
+            if (wasJustMovedAgainst.moves.length == 0) {
+                assistance.innerHTML = this.isWhitesTurn ? "Checkmate, black wins!" : "Checkmate, white wins!";
+            } else {
+                assistance.innerHTML = "Check";
+            };
+        } else {
+            assistance.innerHTML = "";
+        };
+    }
+};
 
-let gamestate = {
-    carryingPiece : false,
-    isWhitesTurn : true,
-    whiteAttacking : [],
-    blackAttacking : [],
-    moveLog : []
+class Player {
+    constructor() {
+        this.pieces = [];
+        this.moves = [];
+        this.attacking = [];
+    };
 };
 
 class Board {
     constructor() {
-        this.whitepieces = [];
-        this.blackpieces = [];
-        this.whitepawns = [];
-        this.blackpawns = [];
+        this.squaresize = canvas.width/8;
+
+        this.pieces = [];
+        this.map = [];
+
+        for (let i = 0; i < 8; i++) {
+            let row = [];
+            for (let j = 0; j < 8; j++) {
+                row.push(false);
+            };
+            this.map.push(row);
+        };
+
+        this.white = new Player();
+        this.black = new Player();
     };
 
-    static isMate() {
-        return false;
+    setMapPos(x, y, value) {
+        this.map[7-y][x] = value;
+    }
+
+    getPieceAt(x, y) {
+        try {
+            return this.map[7-y][x];
+        } catch {
+            return false;
+        }
     };
 
     evaluate() {
+        //this.recalculateMoves();
         let wVal = 0;
         let bVal = 0;
-        for (let piece of this.whitepieces) {
+        for (let piece of this.white.pieces) {
             wVal += piece.value;
         };
-        for (let piece of this.blackpieces) {
+        for (let piece of this.black.pieces) {
             bVal += piece.value;
         };
-        let wMob = this.getMoves(true).length;
-        let bMob = this.getMoves(false).length;
-        return (wVal - bVal) + 0.5 * (wMob - bMob);
-    };
-
-    newBoardFromMove(move) {
-        let newBoard = new Board();
-        for (let piece of this.whitepieces) {
-            let newPiece = new (piece.id)(piece.x, piece.y, true);
-            if (piece.id == Pawn) {
-                this.whitepawns.push(newPiece);
-            };
-            if (move.piece == piece) {
-                move.piece = newPiece;
-            };
-            newBoard.whitepieces.push(newPiece);
-        };
-        for (let piece of this.blackpieces) {
-            let newPiece = new (piece.id)(piece.x, piece.y, false);
-            if (move.piece == piece) {
-                move.piece = newPiece;
-            };
-            if (piece.id == Pawn) {
-                this.blackpawns.push(newPiece);
-            };
-            newBoard.blackpieces.push(newPiece);
-        };
-        newBoard.apply(move);
-        return newBoard;
-    };
-
-    recalculateAttacking() {
-        gamestate.whiteAttacking = [];
-        gamestate.blackAttacking = [];
-        for (let piece of this.whitepieces) {
-            gamestate.whiteAttacking = gamestate.whiteAttacking.concat(piece.calculateAttacking());
-        };
-        for (let piece of this.blackpieces) {
-            gamestate.blackAttacking = gamestate.blackAttacking.concat(piece.calculateAttacking());
-        };
+        //let wMob = this.white.moves.length;
+        //let bMob = this.black.moves.length;
+        return (wVal - bVal);// + 0.5 * (wMob - bMob);
     };
 
     apply(move) {
-        let pieceAtLoc = this.getPieceAt(move.x, move.y);
-        if (pieceAtLoc) {
-            pieceAtLoc.capture(this);
+        let piece = this.getPieceAt(move.X, move.Y);
+        let pieceAtDestination = this.getPieceAt(move.x, move.y);
+        if (pieceAtDestination) {
+            pieceAtDestination.capture();
         };
-        move.piece.movecount += 1;
-        move.piece.x = move.x;
-        move.piece.y = move.y;
-        //this.recalculateAttacking();
+        this.setMapPos(move.X, move.Y, false);
+        this.setMapPos(move.x, move.y, piece);
+        piece.x = move.x;
+        piece.y = move.y;
     };
 
-    setupPieces() {
-        this.whitepieces.push(
-            new Rook(0, 0, true),
-            new Knight(1, 0, true),
-            new Bishop(2, 0, true),
-            new Queen(3, 0, true),
-            new King(4, 0, true),
-            new Bishop(5, 0, true),
-            new Knight(6, 0, true),
-            new Rook(7, 0, true),
-
-            new Pawn(0, 1, true),
-            new Pawn(1, 1, true),
-            new Pawn(2, 1, true),
-            new Pawn(3, 1, true),
-            new Pawn(4, 1, true),
-            new Pawn(5, 1, true),
-            new Pawn(6, 1, true),
-            new Pawn(7, 1, true)
-        );
-
-        this.blackpieces.push(
-            new Rook(0, 7, false),
-            new Knight(1, 7, false),
-            new Bishop(2, 7, false),
-            new Queen(3, 7, false),
-            new King(4, 7, false),
-            new Bishop(5, 7, false),
-            new Knight(6, 7, false),
-            new Rook(7, 7, false),
-
-            new Pawn(0, 6, false),
-            new Pawn(1, 6, false),
-            new Pawn(2, 6, false),
-            new Pawn(3, 6, false),
-            new Pawn(4, 6, false),
-            new Pawn(5, 6, false),
-            new Pawn(6, 6, false),
-            new Pawn(7, 6, false)
-        );
+    showPieces() {
+        for (let piece of this.pieces) {
+            if (game.holding == piece) {
+                continue;
+            }
+            piece.draw();
+        };
     };
 
     draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height)
-        for (let x = 0; x < canvas.height; x += squaresize) {
-            for (let y = 0; y < canvas.height; y += squaresize) {
+        for (let x = 0; x < canvas.height; x += this.squaresize) {
+            for (let y = 0; y < canvas.height; y += this.squaresize) {
                 if (!((x % 2) && (y % 2) || (!(x % 2) && !(y % 2)))) {
-                    ctx.fillRect(x, y, squaresize, squaresize);
+                    ctx.fillRect(x, y, this.squaresize, this.squaresize);
                 };
             };
         };
-        this.showPieces()
+        this.showPieces();
     };
 
-    getPieceAt(x, y) {
-        for (let piece of this.whitepieces) {
-            if (piece.x == x && piece.y == y) {
-                return piece
+    newBoardFromMove(move) {
+        let newBoard = new Board();
+
+        let pieceAt;
+        for (let i = 0; i < 8; i++) {
+            for (let j = 0; j < 8; j++) {
+                pieceAt = this.getPieceAt(i, j);
+                if (pieceAt) {
+                    if (move.piece == pieceAt) {
+                        continue;
+                    } else if (pieceAt.id == King) {
+                        let newKing = new King(i, j, newBoard, pieceAt.isWhite);
+                        if (pieceAt.isWhite) {
+                            newBoard.white.king = newKing;
+                        } else {
+                            newBoard.black.king = newKing;
+                        };
+                    } else {
+                        if (pieceAt.isWhite) {
+                            newBoard.white.pieces.push(new (pieceAt.id)(i, j, newBoard, pieceAt.isWhite));
+                        } else {
+                            newBoard.black.pieces.push(new (pieceAt.id)(i, j, newBoard, pieceAt.isWhite));
+                        };
+                    };
+                };
             };
         };
-        for (let piece of this.blackpieces) {
-            if (piece.x == x && piece.y == y) {
-                return piece
-            };
+
+        let pieceToCapture = newBoard.getPieceAt(move.x, move.y);
+        if (pieceToCapture) {
+            pieceToCapture.capture();
         };
-        return false;
+        new (move.piece.id)(move.x, move.y, newBoard, pieceAt.isWhite);
+
+        this.pieces = this.white.pieces.concat(this.black.pieces);
+        this.pieces.push(this.white.king, this.black.king);
+
+        return newBoard;
     };
 
-    getMoves(isWhite) {
-        let out = [];
-        if (isWhite) {
-            for (let piece of this.whitepieces) {
-                out = out.concat(piece.getAllMoves(this));
-            };
-        } else {
-            for (let piece of this.blackpieces) {
-                out = out.concat(piece.getAllMoves(this));
-            };
-        };
-        return out;
+    setupPieces() {
+        this.white.pieces = [
+            new Rook(0, 0, this, true),
+            new Knight(1, 0, this, true),
+            new Bishop(2, 0, this, true),
+            new Queen(3, 0, this, true),
+            new Bishop(5, 0, this, true),
+            new Knight(6, 0, this, true),
+            new Rook(7, 0, this, true),
+
+            //new Pawn(0, 1, this, true),
+            //new Pawn(1, 1, this, true),
+            new Pawn(2, 1, this, true),
+            //new Pawn(3, 1, this, true),
+            //new Pawn(4, 1, this, true),
+            //new Pawn(5, 1, this, true),
+            //new Pawn(6, 1, this, true),
+            //new Pawn(7, 1, this, true),
+        ];
+
+        this.white.king = new King(4, 0, this, true);
+
+        this.black.pieces = [
+            new Rook(0, 7, this, false),
+            new Knight(1, 7, this, false),
+            new Bishop(2, 7, this, false),
+            new Queen(3, 7, this, false),
+            new Bishop(5, 7, this, false),
+            new Knight(6, 7, this, false),
+            new Rook(7, 7, this, false),
+
+            // new Pawn(0, 6, this, false),
+            // new Pawn(1, 6, this, false),
+            // new Pawn(2, 6, this, false),
+            // new Pawn(3, 6, this, false),
+            // new Pawn(4, 6, this, false),
+            // new Pawn(5, 6, this, false),
+            // new Pawn(6, 6, this, false),
+            // new Pawn(7, 6, this, false), 
+        ];
+
+        this.black.king = new King(4, 7, this, false);
+
+        this.pieces = this.white.pieces.concat(this.black.pieces);
+        this.pieces.push(this.white.king, this.black.king);
     };
 
-    showPieces() {
-        for (let piece of this.whitepieces) {
-            piece.draw();
+    recalculateMoves(returnMoves = 0) {
+        this.white.moves = [];
+        this.white.attacking = [];
+        this.black.moves = [];
+        this.black.attacking = [];
+        for (let piece of this.pieces) {
+            piece.recalculateMoves();
         };
-        for (let piece of this.blackpieces) {
-            piece.draw();
+        try {
+            this.white.king.recalculateMoves();
+            this.black.king.recalculateMoves();
+        } catch {
+            let x = 1+ 1
+        }
+        
+    };
+
+    getWhiteMoves() {
+        this.white.moves = [];
+        this.white.attacking = [];
+
+        for (let piece of this.white.pieces) {
+            piece.recalculateMoves();
+            let x = piece;
         };
+        this.white.king.recalculateMoves();
+
+        return this.white.moves;
+    };
+
+    getBlackMoves() {
+        this.black.moves = [];
+        this.black.attacking = [];
+
+        for (let piece of this.black.pieces) {
+            piece.recalculateMoves();
+            let x = piece;
+        };
+        this.black.king.recalculateMoves();
+
+        return this.black.moves;
     };
 };
+
+game.board = new Board();

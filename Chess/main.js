@@ -1,73 +1,69 @@
-gamestate.board = new Board();
+game.board.setupPieces();
 
-let messager = document.getElementById("message");
+images.b.queen.onload = () => {
+    game.board.draw();
+    game.board.recalculateMoves();
+    //for (let move of game.board.white.moves) {
+    //    move.draw();
+    //}
+};
 
-messager.innerHTML = "Your Turn";
+function AIMove() {
+    move = minimax(game.board, false, 2, -Infinity, Infinity)[1];
+    game.board.apply(move);
+    game.isWhitesTurn = !game.isWhitesTurn;
+    game.board.draw();
+};
 
-//function isMate():
+document.onmousemove = function(e) {
+    if (game.holding) {
+        game.board.draw();
+        game.holding.drawAt(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top);
+        for (let move of game.holding.moves) {
+            move.draw();
+        };
+        return;
+    };
 
-//for each piece every turn, create an array of captureable spaces for black and white. If every square the king is on/can move to is in this list,
-//look at the pieces that can capture these squares. If any of these pieces can be captured then remove their capturable spaces, and see if all of the
-//kings available moves are taken
+    game.board.draw();
 
-let wKing;
-let bKing;
+    let x = Math.floor((e.clientX - canvas.getBoundingClientRect().left) / game.board.squaresize);
+    let y = 7 - Math.floor((e.clientY - canvas.getBoundingClientRect().top) / game.board.squaresize);
 
-canvas.onmousemove = function(e) {
-    if (gamestate.carryingPiece) {
-        gamestate.board.draw();
-        let mouseX = Math.floor((e.clientX - canvas.getBoundingClientRect().left)/squaresize);
-        let mouseY = 7 - Math.floor((e.clientY - canvas.getBoundingClientRect().top)/squaresize);
-
-        gamestate.carryingPiece.drawAt(e.clientX - canvas.getBoundingClientRect().left - squaresize/2, e.clientY - canvas.getBoundingClientRect().top - squaresize/2);
-
-        if (mouseX == gamestate.carryingPiece.x && mouseY == gamestate.carryingPiece.y) {
-            messager.innerHTML = "";
-        } else if (gamestate.carryingPiece.validateMove(mouseX, mouseY)) {
-            messager.innerHTML = "Valid move";
-        } else {
-            messager.innerHTML = "Invalid move";
+    let pieceAt = game.board.getPieceAt(x, y);
+    if (pieceAt) {
+        game.board.recalculateMoves();
+        for (let move of pieceAt.moves) {
+            move.draw();
         };
     };
 };
 
-canvas.onmousedown = function(e) {
-    let mouseX = Math.floor((e.clientX - canvas.getBoundingClientRect().left)/squaresize);
-    let mouseY = 7 - Math.floor((e.clientY - canvas.getBoundingClientRect().top)/squaresize);
+document.onmousedown = function(e) {
+    game.board.draw();
 
-    let pieceAtLoc = gamestate.board.getPieceAt(mouseX, mouseY);
-    
-    if (!gamestate.carryingPiece) {
-        if (!pieceAtLoc || !(pieceAtLoc.isWhite == pieceAtLoc.isWhite)) {
-            return;
+    let x = Math.floor((e.clientX - canvas.getBoundingClientRect().left) / game.board.squaresize);
+    let y = 7 - Math.floor((e.clientY - canvas.getBoundingClientRect().top) / game.board.squaresize);
+
+    if (game.holding) {
+        game.holding.drawAt(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top);
+        game.holding.putDown(x, y);
+        if (game.players == 1) {
+            AIMove();
         };
-        gamestate.carryingPiece = pieceAtLoc;
+        return;
+    };
+
+    let pieceAt = game.board.getPieceAt(x, y);
+    if (pieceAt) {
+        pieceAt.recalculateMoves();
+        for (let move of pieceAt.moves) {
+            move.draw();
+        };
+    };
+
+    if (game.players == 1 && pieceAt.isWhite && game.isWhitesTurn || game.players == 2 && pieceAt.isWhite == game.isWhitesTurn) {
+        game.holding = pieceAt;
+        game.board.recalculateMoves();
     };
 };
-
-function AImove() {
-    let move = minimax(gamestate.board, false, 4, -Infinity, Infinity)[1];
-    let pieceAtLoc = gamestate.board.getPieceAt(move.from[0], move.from[1]);
-    temp = new Move(move.x, move.y, pieceAtLoc);
-    temp.from = move.from;
-    gamestate.moveLog.push(temp);
-    console.log(gamestate.moveLog);
-    gamestate.board.apply(temp);
-    //console.log("################################ NEW TURN #############################");
-    gamestate.board.draw();
-    messager.innerHTML = "Your Turn";
-};  
-
-canvas.onmouseup = function(e) {
-    let mouseX = Math.floor((e.clientX - canvas.getBoundingClientRect().left)/squaresize);
-    let mouseY = 7 - Math.floor((e.clientY - canvas.getBoundingClientRect().top)/squaresize);
-    if (gamestate.carryingPiece) {
-        gamestate.carryingPiece.putDown(mouseX, mouseY);
-    };
-};
-
-gamestate.board.setupPieces();
-
-images.b.queen.onload = (() => {
-    gamestate.board.draw();
-});
