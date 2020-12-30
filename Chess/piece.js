@@ -64,6 +64,30 @@ class Piece {
 
     getAllMoves(inputBoard = gamestate.board) {
         var out = [];
+        if ([Queen, Rook, Bishop].includes(this.id)) {
+            for (let direction of this.attackDirections) {
+                let x, y, pieceAt;
+                for (let i = 1; i < 8; i++) {
+                    x = direction[0]*i + this.x;
+                    y = direction[1]*i + this.y;
+                    if (x >= 0 && x < 8 && y >= 0 && y < 8) {
+                        pieceAt = this.board.getPieceAt(x, y)
+                        if (!pieceAt) {
+                            out.push(new Move(this.x + vector[0], this.y + vector[1], this));
+                        } else if (pieceAt.isWhite != this.isWhite) {
+                            out.push
+                            break;
+                        } else {
+                            break;
+                        };
+                    } else {
+                        break;
+                    };
+                };
+            }; 
+            return;
+        };
+        
         for (let vector of this.vectors) {
             if (this.validateMove(this.x + vector[0], this.y + vector[1], inputBoard)) {
                 out.push(new Move(this.x + vector[0], this.y + vector[1], this));
@@ -188,6 +212,13 @@ class Rook extends Piece {
         this.value = pieceValues.rook;
 
         this.movecount = 0
+
+        this.attackDirections = [
+            [1, 0],
+            [0, 1],
+            [-1, 0],
+            [0, -1]
+        ];
         
         for (var i = 1; i < 8; i++) {
             this.vectors.push([0, i]);
@@ -324,6 +355,13 @@ class Bishop extends Piece {
 
         this.value = pieceValues.bishop;
 
+        this.attackDirections = [
+            [1, 1],
+            [-1, 1],
+            [1, -1],
+            [-1, -1]
+        ];
+
         this.vectors = []
         
         for (var i = 1; i < 8; i++) {
@@ -412,6 +450,17 @@ class Queen extends Piece {
         this.movecount = 0;
 
         this.value = pieceValues.queen;
+
+        this.attackDirections = [
+            [1, 0],
+            [0, 1],
+            [-1, 0],
+            [0, -1],
+            [1, 1],
+            [-1, 1],
+            [1, -1],
+            [-1, -1]
+        ];
 
         this.vectors = [];
 

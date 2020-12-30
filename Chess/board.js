@@ -82,7 +82,6 @@ class Board {
         move.piece.movecount += 1;
         move.piece.x = move.x;
         move.piece.y = move.y;
-        //this.recalculateAttacking();
     };
 
     setupPieces() {
