@@ -38,7 +38,7 @@ canvas.onmousedown = function(e) {
     let pieceAtLoc = gamestate.board.getPieceAt(mouseX, mouseY);
     
     if (!gamestate.carryingPiece) {
-        if (!pieceAtLoc || !(pieceAtLoc.isWhite == pieceAtLoc.isWhite)) {
+        if (!pieceAtLoc || !pieceAtLoc.isWhite) {
             return;
         };
         gamestate.carryingPiece = pieceAtLoc;
