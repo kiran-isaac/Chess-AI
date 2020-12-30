@@ -3,8 +3,6 @@ let ctx = canvas.getContext("2d");
 
 const squaresize = canvas.width / 8;
 
-let x = 10;
-
 let gamestate = {
     carryingPiece : false,
     isWhitesTurn : true,
