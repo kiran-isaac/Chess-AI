@@ -4,7 +4,7 @@ const ctx = canvas.getContext("2d");
 var game = {
     showMoves : true,
     players : 2,
-    isWhitesTurn : false,
+    isWhitesTurn : true,
     holding : false,
     updateState : function() {
         let wasJustMovedAgainst = this.isWhitesTurn ? this.board.black : this.board.white;
