@@ -139,7 +139,7 @@ class Board {
         if (pieceToCapture) {
             pieceToCapture.capture();
         };
-        new (move.piece.id)(move.x, move.y, newBoard, pieceAt.isWhite);
+        let x = new (move.piece.id)(move.x, move.y, newBoard, move.piece.isWhite);
 
         this.pieces = this.white.pieces.concat(this.black.pieces);
         this.pieces.push(this.white.king, this.black.king);
