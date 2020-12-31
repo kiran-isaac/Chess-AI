@@ -90,10 +90,11 @@ class Piece {
                 game.holding = false;
                 game.board.draw();
                 game.board.recalculateMoves();
-                game.updateState();
                 game.isWhitesTurn = false;
                 if (game.players == 1) {
+                    game.board.draw();
                     AIMove();
+                    game.updateState();
                 };
             };
         };
@@ -112,6 +113,10 @@ class Piece {
             if (move.piece == this) {
                 this.player.moves.filter(x => x != move);
             };
+        };
+
+        if (this.enemy.king) {
+            this.enemy.king.recalculateMoves();
         };
     };
 
@@ -148,6 +153,7 @@ class Piece {
                             break;
                         };
                     } else {
+                        this.attacking.push(new Move(x, y, this));
                         break;
                     };
                 } else {
@@ -254,6 +260,9 @@ class Knight extends Piece {
 
             if (x >= 0 && y >= 0 && x < 8 && y < 8 && (!pieceAt || pieceAt.isWhite != this.isWhite)) {
                 this.moves.push(new Move(x, y, this));
+            };
+
+            if (Board.inBounds(x, y)) {
                 this.attacking.push(new Move(x, y, this));
             };
         };
@@ -284,12 +293,18 @@ class Pawn extends Piece {
             this.moves.push(new Move(this.x + 1, this.y + this.forwards(), this));
         };
 
+        if (Board.inBounds(this.x + 1, this.y + this.forwards())) {
+            this.attacking.push(new Move(this.x + 1, this.y + this.forwards(), this));
+        };
+
+        if (Board.inBounds(this.x - 1, this.y + this.forwards())) {
+            this.attacking.push(new Move(this.x - 1, this.y + this.forwards(), this));
+        };
+
         if (!this.board.getPieceAt(this.x, this.y + this.forwards())) {
             this.moves.push(new Move(this.x, this.y + this.forwards(), this));
-            this.attacking.push(new Move(this.x, this.y + this.forwards(), this));
             if (!this.board.getPieceAt(this.x, this.y + this.forwards(2)) && this.firstMove) {
                 this.moves.push(new Move(this.x, this.y + this.forwards(2), this));
-                this.attacking.push(new Move(this.x, this.y + this.forwards(2), this));
             };
         };
 

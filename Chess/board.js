@@ -7,22 +7,20 @@ var game = {
     isWhitesTurn : true,
     holding : false,
     updateState : function() {
-        let wasJustMovedAgainst = this.isWhitesTurn ? this.board.black : this.board.white;
-
-        switch (wasJustMovedAgainst.king.isCheck.length) {
-            case 0 : 
-                assistance.innerHTML = "";
-                break;
-            case 1 : 
-                assistance.innerHTML = "Check";
-                break;
-            case 2 : 
-                assistance.innerHTML = "Double check";
-                break;
-        };
-
-        if (wasJustMovedAgainst.moves.length == 0) {
-            assistance.innerHTML = this.isWhitesTurn ? "Checkmate, black wins!" : "Checkmate, white wins!";
+        assistance.innerHTML = "";
+        for (let player of [this.board.white, this.board.black]) {
+            switch (player.king.isCheck.length) {
+                case 1 : 
+                    assistance.innerHTML = "Check";
+                    break;
+                case 2 : 
+                    assistance.innerHTML = "Double check";
+                    break;
+            };
+    
+            if (player.moves.length == 0) {
+                assistance.innerHTML = player == this.board.white ? "Checkmate, black wins!" : "Checkmate, white wins!";
+            };
         };
     }
 };
@@ -54,6 +52,14 @@ class Board {
         this.black = new Player();
     };
 
+    static inBounds(x, y) {
+        if (x <= 7 && x >= 0 && y >= 0 && y <= 7) {
+            return true;
+        } else {
+            return false;
+        };
+    }
+
     setMapPos(x, y, value) {
         this.map[7-y][x] = value;
     }
@@ -67,7 +73,7 @@ class Board {
     };
 
     evaluate() {
-        //this.recalculateMoves();
+        this.recalculateMoves();
         let wVal = 0;
         let bVal = 0;
         for (let piece of this.white.pieces) {
@@ -76,9 +82,9 @@ class Board {
         for (let piece of this.black.pieces) {
             bVal += piece.value;
         };
-        //let wMob = this.white.moves.length;
-        //let bMob = this.black.moves.length;
-        return (wVal - bVal);// + 0.5 * (wMob - bMob);
+        let wMob = this.white.moves.length;
+        let bMob = this.black.moves.length;
+        return (wVal - bVal) + 0.5 * (wMob - bMob);
     };
 
     apply(move) {
@@ -226,7 +232,6 @@ class Board {
 
         for (let piece of this.white.pieces) {
             piece.recalculateMoves();
-            let x = piece;
         };
         this.white.king.recalculateMoves();
 
@@ -239,7 +244,6 @@ class Board {
 
         for (let piece of this.black.pieces) {
             piece.recalculateMoves();
-            let x = piece;
         };
         this.black.king.recalculateMoves();
 

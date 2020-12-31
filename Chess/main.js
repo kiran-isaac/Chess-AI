@@ -5,13 +5,6 @@ images.b.queen.onload = () => {
     game.board.recalculateMoves();
 };
 
-function AIMove() {
-    move = minimax(game.board, false, 4, -Infinity, Infinity)[1];
-    game.board.apply(move);
-    game.isWhitesTurn = true;
-    game.board.draw();
-};
-
 document.onmousemove = function(e) {
     if (game.holding) {
         game.board.draw();
@@ -19,6 +12,7 @@ document.onmousemove = function(e) {
         for (let move of game.holding.moves) {
             move.draw();
         };
+        
         return;
     };
 
@@ -45,6 +39,7 @@ document.onmousedown = function(e) {
     if (game.holding) {
         game.holding.drawAt(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top);
         game.holding.putDown(x, y);
+        game.updateState();
         return;
     };
 

@@ -40,3 +40,12 @@ function minimax(inputBoard, isMaximising, depth, alpha, beta) {
         return [bestValue, bestMove];
     };
 };
+function AIMove() {
+    move = minimax(game.board, false, 3, -Infinity, Infinity)[1];
+
+    game.board.apply(move);
+    game.board.draw();
+
+    game.board.recalculateMoves();
+    game.isWhitesTurn = true;
+};
