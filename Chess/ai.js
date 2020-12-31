@@ -6,8 +6,9 @@ function minimax(inputBoard, isMaximising, depth, alpha, beta) {
 
     if (isMaximising) {
         let bestValue = -Infinity;
+        let bestMove;
         let moves = inputBoard.getWhiteMoves();
-        for (var move of moves) {
+        for (let move of moves) {
             let newBoard = inputBoard.newBoardFromMove(move);
             let newBoardValue = minimax(newBoard, false, depth - 1, alpha, beta)[0];
             if (newBoardValue > bestValue) {
@@ -22,8 +23,9 @@ function minimax(inputBoard, isMaximising, depth, alpha, beta) {
         return [bestValue, bestMove];
     } else {
         let bestValue = Infinity;
+        let bestMove;
         let moves = inputBoard.getBlackMoves();
-        for (var move of moves) {
+        for (let move of moves) {
             let newBoard = inputBoard.newBoardFromMove(move);
             let newBoardValue = minimax(newBoard, true, depth - 1, alpha, beta)[0];
             if (newBoardValue < bestValue) {

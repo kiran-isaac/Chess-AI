@@ -3,7 +3,7 @@ const ctx = canvas.getContext("2d");
 
 var game = {
     showMoves : true,
-    players : 2,
+    players : 1,
     isWhitesTurn : true,
     holding : false,
     updateState : function() {
@@ -128,8 +128,10 @@ class Board {
                         let newKing = new King(i, j, newBoard, pieceAt.isWhite);
                         if (pieceAt.isWhite) {
                             newBoard.white.king = newKing;
+                            newBoard.white.pieces.push(newKing);
                         } else {
                             newBoard.black.king = newKing;
+                            newBoard.black.pieces.push(newKing);
                         };
                     } else {
                         if (pieceAt.isWhite) {
@@ -146,10 +148,14 @@ class Board {
         if (pieceToCapture) {
             pieceToCapture.capture();
         };
-        let x = new (move.piece.id)(move.x, move.y, newBoard, move.piece.isWhite);
+        if (move.piece.isWhite) {
+            newBoard.white.pieces.push(new (move.piece.id)(move.x, move.y, newBoard, move.piece.isWhite));
+        } else {
+            newBoard.black.pieces.push(new (move.piece.id)(move.x, move.y, newBoard, move.piece.isWhite));
+        };
 
-        this.pieces = this.white.pieces.concat(this.black.pieces);
-        this.pieces.push(this.white.king, this.black.king);
+        newBoard.pieces = newBoard.white.pieces.concat(newBoard.black.pieces);
+        newBoard.pieces.push(newBoard.white.king, newBoard.black.king);
 
         return newBoard;
     };

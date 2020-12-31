@@ -91,7 +91,10 @@ class Piece {
                 game.board.draw();
                 game.board.recalculateMoves();
                 game.updateState();
-                game.isWhitesTurn = !game.isWhitesTurn;
+                game.isWhitesTurn = false;
+                if (game.players == 1) {
+                    AIMove();
+                };
             };
         };
     };
@@ -110,8 +113,6 @@ class Piece {
                 this.player.moves.filter(x => x != move);
             };
         };
-
-        this.enemy.king.recalculateMoves();
     };
 
     forwards(steps = 1) {

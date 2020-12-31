@@ -6,9 +6,9 @@ images.b.queen.onload = () => {
 };
 
 function AIMove() {
-    move = minimax(game.board, false, 2, -Infinity, Infinity)[1];
+    move = minimax(game.board, false, 4, -Infinity, Infinity)[1];
     game.board.apply(move);
-    game.isWhitesTurn = !game.isWhitesTurn;
+    game.isWhitesTurn = true;
     game.board.draw();
 };
 
@@ -45,9 +45,6 @@ document.onmousedown = function(e) {
     if (game.holding) {
         game.holding.drawAt(e.clientX - canvas.getBoundingClientRect().left, e.clientY - canvas.getBoundingClientRect().top);
         game.holding.putDown(x, y);
-        if (game.players == 1) {
-            AIMove();
-        };
         return;
     };
 
