@@ -73,7 +73,7 @@ class Board {
     };
 
     evaluate() {
-        this.recalculateMoves();
+        this.recalculateMoves(false);
         let wVal = 0;
         let bVal = 0;
         for (let piece of this.white.pieces) {

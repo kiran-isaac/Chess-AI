@@ -132,7 +132,7 @@ class Piece {
         ctx.drawImage(this.img, x - game.board.squaresize / 2, y - game.board.squaresize / 2, game.board.squaresize, game.board.squaresize);
     };
 
-    recalculateMoves() {
+    recalculateMoves(checkCheck = true) {
         this.moves = [];
         this.attacking = [];
 
@@ -162,7 +162,9 @@ class Piece {
             };
         };
 
-        this.checkFilter();
+        if (checkCheck) {
+            this.checkFilter();
+        };
 
         this.player.moves = this.player.moves.concat(this.moves);
         this.player.attacking = this.player.attacking.concat(this.attacking);
@@ -248,7 +250,7 @@ class Knight extends Piece {
         ];
     };
 
-    recalculateMoves() {
+    recalculateMoves(checkCheck = true) {
         this.moves = [];
         this.attacking = [];
 
@@ -267,7 +269,9 @@ class Knight extends Piece {
             };
         };
 
-        this.checkFilter();
+        if (checkCheck) {
+            this.checkFilter();
+        };
 
         this.player.moves = this.player.moves.concat(this.moves);
         this.player.attacking = this.player.attacking.concat(this.attacking);
@@ -279,7 +283,7 @@ class Pawn extends Piece {
         super(x, y, board, Pawn, isWhite, (isWhite ? images.w : images.b).pawn, pieceValues.pawn);
     };
 
-    recalculateMoves() {
+    recalculateMoves(checkCheck = true) {
         this.moves = [];
         this.attacking = [];
 
@@ -308,7 +312,9 @@ class Pawn extends Piece {
             };
         };
 
-        this.checkFilter();
+        if (checkCheck) {
+            this.checkFilter();
+        };
 
         this.player.moves = this.player.moves.concat(this.moves);
         this.player.attacking = this.player.attacking.concat(this.attacking);
