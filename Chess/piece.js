@@ -65,6 +65,7 @@ class Piece {
         this.id = id;
         this.isWhite = isWhite;
         this.player = isWhite ? this.board.white : this.board.black;
+        this.enemy = isWhite ? this.board.black : this.board.white;
         this.img = img;
         this.value = value;
 
@@ -98,6 +99,19 @@ class Piece {
     capture() {
         this.player.pieces = this.player.pieces.filter(x => x != this);
         this.board.pieces = this.board.pieces.filter(x => x != this);
+        for (let move of this.player.attacking) {
+            if (move.piece == this) {
+                this.player.attacking.filter(x => x != move);
+            };
+        };
+
+        for (let move of this.player.moves) {
+            if (move.piece == this) {
+                this.player.moves.filter(x => x != move);
+            };
+        };
+
+        this.enemy.king.recalculateMoves();
     };
 
     forwards(steps = 1) {
@@ -141,24 +155,30 @@ class Piece {
             };
         };
 
-        if (this.player.king.isCheck) {
-            for (let move of this.moves) {
-                let testBoard = this.board.newBoardFromMove(move);
-                let testPlayer = this.isWhite ? testBoard.white : testBoard.black;
-                let threataningPiece = testBoard.getPieceAt(this.player.king.isCheck.x, this.player.king.isCheck.y);
-                threataningPiece.recalculateMoves();
-                testPlayer.king.recalculateMoves();
-                if (testPlayer.king.isCheck) {
-                    this.moves = this.moves.filter(x => x != move);
+        this.checkFilter();
+
+        this.player.moves = this.player.moves.concat(this.moves);
+        this.player.attacking = this.player.attacking.concat(this.attacking);
+    };
+
+    checkFilter() {
+        if (this.player.king.isCheck.length) {
+            for (let piece of this.player.king.isCheck) {
+                for (let move of this.moves) {
+                    let testBoard = game.board.newBoardFromMove(move);
+                    let testPlayer = this.isWhite ? testBoard.white : testBoard.black;
+                    let threataningPiece = testBoard.getPieceAt(piece.x, piece.y);
+                    if (!threataningPiece) {
+                        return;
+                    };
+                    threataningPiece.recalculateMoves();
+                    testPlayer.king.recalculateMoves();
+                    if (testPlayer.king.isCheck.length) {
+                        this.moves = this.moves.filter(x => x != move);
+                    };
                 };
             };
         };
-
-        this.player.moves = this.player.moves.concat(this.moves);
-        this.player.attacking = this.player.attacking.concat(this.attacking);
-
-        this.player.moves = this.player.moves.concat(this.moves);
-        this.player.attacking = this.player.attacking.concat(this.attacking);
     };
 };
 
@@ -237,18 +257,7 @@ class Knight extends Piece {
             };
         };
 
-        if (this.player.king.isCheck) {
-            for (let move of this.moves) {
-                let testBoard = game.board.newBoardFromMove(move);
-                let testPlayer = this.isWhite ? testBoard.white : testBoard.black;
-                let threataningPiece = testBoard.getPieceAt(this.player.king.isCheck.x, this.player.king.isCheck.y);
-                threataningPiece.recalculateMoves();
-                testPlayer.king.recalculateMoves();
-                if (testPlayer.king.isCheck) {
-                    this.moves = this.moves.filter(x => x != move);
-                };
-            };
-        };
+        this.checkFilter();
 
         this.player.moves = this.player.moves.concat(this.moves);
         this.player.attacking = this.player.attacking.concat(this.attacking);
@@ -283,18 +292,7 @@ class Pawn extends Piece {
             };
         };
 
-        if (this.player.king.isCheck) {
-            for (let move of this.moves) {
-                let testBoard = game.board.newBoardFromMove(move);
-                let testPlayer = this.isWhite ? testBoard.white : testBoard.black;
-                let threataningPiece = testBoard.getPieceAt(this.player.king.isCheck.x, this.player.king.isCheck.y);
-                threataningPiece.recalculateMoves();
-                testPlayer.king.recalculateMoves();
-                if (testPlayer.king.isCheck) {
-                    this.moves = this.moves.filter(x => x != move);
-                };
-            };
-        };
+        this.checkFilter();
 
         this.player.moves = this.player.moves.concat(this.moves);
         this.player.attacking = this.player.attacking.concat(this.attacking);
@@ -307,7 +305,7 @@ class King extends Piece {
 
         this.player.king = this;
 
-        this.isCheck = false;
+        this.isCheck = [];
 
         this.attackVectors = [
             [1, 0],
@@ -329,10 +327,10 @@ class King extends Piece {
 
         let enemyAttackList = this.isWhite ? this.board.black.attacking : this.board.white.attacking;
 
-        this.isCheck = false;
+        this.isCheck = [];
         for (let attack of enemyAttackList) {
             if (this.x == attack.x && this.y == attack.y) {
-                this.isCheck = attack.piece;
+                this.isCheck.push(attack.piece);
             };
         };
 

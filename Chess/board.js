@@ -8,14 +8,21 @@ var game = {
     holding : false,
     updateState : function() {
         let wasJustMovedAgainst = this.isWhitesTurn ? this.board.black : this.board.white;
-        if (wasJustMovedAgainst.king.isCheck) {
-            if (wasJustMovedAgainst.moves.length == 0) {
-                assistance.innerHTML = this.isWhitesTurn ? "Checkmate, black wins!" : "Checkmate, white wins!";
-            } else {
+
+        switch (wasJustMovedAgainst.king.isCheck.length) {
+            case 0 : 
+                assistance.innerHTML = "";
+                break;
+            case 1 : 
                 assistance.innerHTML = "Check";
-            };
-        } else {
-            assistance.innerHTML = "";
+                break;
+            case 2 : 
+                assistance.innerHTML = "Double check";
+                break;
+        };
+
+        if (wasJustMovedAgainst.moves.length == 0) {
+            assistance.innerHTML = this.isWhitesTurn ? "Checkmate, black wins!" : "Checkmate, white wins!";
         };
     }
 };
@@ -157,14 +164,14 @@ class Board {
             new Knight(6, 0, this, true),
             new Rook(7, 0, this, true),
 
-            //new Pawn(0, 1, this, true),
-            //new Pawn(1, 1, this, true),
+            new Pawn(0, 1, this, true),
+            new Pawn(1, 1, this, true),
             new Pawn(2, 1, this, true),
-            //new Pawn(3, 1, this, true),
-            //new Pawn(4, 1, this, true),
-            //new Pawn(5, 1, this, true),
-            //new Pawn(6, 1, this, true),
-            //new Pawn(7, 1, this, true),
+            new Pawn(3, 1, this, true),
+            new Pawn(4, 1, this, true),
+            new Pawn(5, 1, this, true),
+            new Pawn(6, 1, this, true),
+            new Pawn(7, 1, this, true),
         ];
 
         this.white.king = new King(4, 0, this, true);
@@ -178,14 +185,14 @@ class Board {
             new Knight(6, 7, this, false),
             new Rook(7, 7, this, false),
 
-            // new Pawn(0, 6, this, false),
-            // new Pawn(1, 6, this, false),
-            // new Pawn(2, 6, this, false),
-            // new Pawn(3, 6, this, false),
-            // new Pawn(4, 6, this, false),
-            // new Pawn(5, 6, this, false),
-            // new Pawn(6, 6, this, false),
-            // new Pawn(7, 6, this, false), 
+            new Pawn(0, 6, this, false),
+            new Pawn(1, 6, this, false),
+            new Pawn(2, 6, this, false),
+            new Pawn(3, 6, this, false),
+            new Pawn(4, 6, this, false),
+            new Pawn(5, 6, this, false),
+            new Pawn(6, 6, this, false),
+            new Pawn(7, 6, this, false), 
         ];
 
         this.black.king = new King(4, 7, this, false);
@@ -194,21 +201,17 @@ class Board {
         this.pieces.push(this.white.king, this.black.king);
     };
 
-    recalculateMoves(returnMoves = 0) {
+    recalculateMoves() {
         this.white.moves = [];
         this.white.attacking = [];
         this.black.moves = [];
         this.black.attacking = [];
+
         for (let piece of this.pieces) {
             piece.recalculateMoves();
         };
-        try {
-            this.white.king.recalculateMoves();
-            this.black.king.recalculateMoves();
-        } catch {
-            let x = 1+ 1
-        }
-        
+        this.white.king.recalculateMoves();
+        this.black.king.recalculateMoves();
     };
 
     getWhiteMoves() {

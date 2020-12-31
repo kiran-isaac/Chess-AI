@@ -3,9 +3,6 @@ game.board.setupPieces();
 images.b.queen.onload = () => {
     game.board.draw();
     game.board.recalculateMoves();
-    //for (let move of game.board.white.moves) {
-    //    move.draw();
-    //}
 };
 
 function AIMove() {
@@ -34,7 +31,7 @@ document.onmousemove = function(e) {
     if (pieceAt) {
         game.board.recalculateMoves();
         for (let move of pieceAt.moves) {
-            move.draw();
+            if (move.piece.isWhite == game.isWhitesTurn) move.draw();
         };
     };
 };
@@ -54,16 +51,21 @@ document.onmousedown = function(e) {
         return;
     };
 
+    game.board.recalculateMoves();
+
     let pieceAt = game.board.getPieceAt(x, y);
     if (pieceAt) {
-        pieceAt.recalculateMoves();
-        for (let move of pieceAt.moves) {
-            move.draw();
+        if (pieceAt.isWhite == game.isWhitesTurn) {
+            pieceAt.recalculateMoves();
+            for (let move of pieceAt.moves) {
+                move.draw();
+            };
         };
-    };
 
-    if (game.players == 1 && pieceAt.isWhite && game.isWhitesTurn || game.players == 2 && pieceAt.isWhite == game.isWhitesTurn) {
-        game.holding = pieceAt;
-        game.board.recalculateMoves();
+        pieceAt.recalculateMoves();
+        if ((game.players == 1 && pieceAt.isWhite && game.isWhitesTurn || game.players == 2 && pieceAt.isWhite == game.isWhitesTurn) && pieceAt.moves.length != 0) {
+            game.holding = pieceAt;
+            game.board.recalculateMoves();
+        };
     };
 };
