@@ -73,7 +73,6 @@ class Board {
     };
 
     evaluate() {
-        this.recalculateMoves(false);
         let wVal = 0;
         let bVal = 0;
         for (let piece of this.white.pieces) {
@@ -82,9 +81,9 @@ class Board {
         for (let piece of this.black.pieces) {
             bVal += piece.value;
         };
-        let wMob = this.white.moves.length;
-        let bMob = this.black.moves.length;
-        return (wVal - bVal) + 0.5 * (wMob - bMob);
+        //let wMob = this.getWhiteMoves().length;
+        //let bMob = this.getBlackMoves().length;
+        return (wVal - bVal) + Math.random();;// + 0.5 * (wMob - bMob);
     };
 
     apply(move) {

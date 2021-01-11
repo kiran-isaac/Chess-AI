@@ -28,6 +28,7 @@ function minimax(inputBoard, isMaximising, depth, alpha, beta) {
         for (let move of moves) {
             let newBoard = inputBoard.newBoardFromMove(move);
             let newBoardValue = minimax(newBoard, true, depth - 1, alpha, beta)[0];
+            console.log(move, newBoardValue)
             if (newBoardValue < bestValue) {
                 bestValue = newBoardValue
                 bestMove = move;
@@ -41,7 +42,9 @@ function minimax(inputBoard, isMaximising, depth, alpha, beta) {
     };
 };
 function AIMove() {
-    move = minimax(game.board, false, 3, -Infinity, Infinity)[1];
+    move = minimax(game.board, false, 4, -Infinity, Infinity)[1];
+
+    move.piece.firstMove = false;
 
     game.board.apply(move);
     game.board.draw();
