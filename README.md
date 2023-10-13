@@ -1,3 +1,2 @@
 # Chess-AI
-This is pretty much ur standard chess AI using minimax.  
-Its pretty crap but i will update it, its so slow at the moment and can only look 4 into the future due to how ineficient it is.
+This is pretty much your standard chess AI using minimax. I made this when I was in sixth form to win a bet against the chess club president. I won the bet. To this day, he still owes me a fiver.
